@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -38,8 +39,8 @@ public class WordCountApp {
   )
   public String stopWordsFile;
 
-  @Parameter(arity = 2, description = "Input and Output files")
-  public List<String> files;
+  @Parameter(description = "Input and Output files")
+  public List<String> args;
 
 
   public static void main(String[] args) throws Exception {
@@ -51,6 +52,9 @@ public class WordCountApp {
     System.out.println(String.format("Returns %s words from the input files and their count. Words are read %s.",
         (app.limit != null) ? "top " + app.limit : "all",
         app.ignoreCase ? "case-insensitive" : "case-sensitive"));
+    int l = app.args.size();
+    String inputFile = app.args.get(l-2);
+    String outputFile = app.args.get(l-1);
 
     // configure Hadoop Jobs
     Configuration conf = new Configuration();
@@ -63,7 +67,7 @@ public class WordCountApp {
     Job job = Job.getInstance(conf, "word count");
     if (StringUtils.isNoneEmpty(app.stopWordsFile)) {
       job.getConfiguration().setBoolean("wordcount.hasStopWords", true);
-      job.addCacheFile(new Path(app.stopWordsFile).toUri());
+      job.addCacheFile(new URI(app.stopWordsFile + "#stopWordsFile"));
     }
     job.setJarByClass(WordCountApp.class);
     job.setMapperClass(TokenizerMapper.class);
@@ -71,8 +75,8 @@ public class WordCountApp {
     job.setReducerClass(SortByIntValueReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
-    FileInputFormat.addInputPath(job, new Path(app.files.get(0)));
-    FileOutputFormat.setOutputPath(job, new Path(app.files.get(1)));
+    FileInputFormat.addInputPath(job, new Path(inputFile));
+    FileOutputFormat.setOutputPath(job, new Path(outputFile));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
   }
 }

@@ -31,6 +31,7 @@ public class TokenizerMapper
   private Text word = new Text();
   private boolean isIgnoreCase;
   private Set<String> stopWords = new HashSet<>();
+  private static final PUNCTURATIONS = "";
 
   @Override
   protected void setup(Context context) throws IOException, InterruptedException {
@@ -38,7 +39,8 @@ public class TokenizerMapper
     this.isIgnoreCase = conf.getBoolean("wordcount.ignoreCase", false);
     URI[] localFiles = context.getCacheFiles();
     for (URI file: localFiles) {
-      try (Stream<String> lines = Files.lines(Paths.get(file))) {
+      File stopWordsFile = new File("./stopWordsFile");
+      try (Stream<String> lines = Files.lines(stopWordsFile.toPath())) {
         List<String> words = null;
         if (isIgnoreCase) {
           words = lines.map(String::toLowerCase).collect(Collectors.toList());
@@ -55,8 +57,9 @@ public class TokenizerMapper
     StringTokenizer itr = new StringTokenizer(value.toString());
     while (itr.hasMoreTokens()) {
       String token = isIgnoreCase ? itr.nextToken().toLowerCase() : itr.nextToken();
-      if (StringUtils.isNoneEmpty(token) && !stopWords.contains(token)) {
-        word.set(isIgnoreCase ? token.toLowerCase() : token);
+      String cleanedToken = token.replaceAll("(^\\p{Punct})|(\\p{Punct}$)", "");
+      if (StringUtils.isNoneEmpty(cleanedToken) && !stopWords.contains(cleanedToken)) {
+        word.set(cleanedToken);
         context.write(word, one);
       }
     }
